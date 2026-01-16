@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio Website</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -88,7 +88,7 @@
             text-align: center;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer; /* Makes it clear it's clickable */
+            cursor: pointer;
         }
 
         .project-item:hover {
@@ -115,6 +115,15 @@
             color: #bdc3c7;
         }
 
+        /* Styling for the live clock text on the card */
+        .live-clock-text {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #00d2ff;
+            font-family: 'Courier New', monospace;
+        }
+
         footer {
             text-align: center;
             padding: 40px 20px;
@@ -124,7 +133,6 @@
             font-size: 0.9rem;
         }
 
-        /* --- MODAL STYLES ADDED HERE --- */
         .modal {
             display: none; 
             position: fixed;
@@ -167,6 +175,50 @@
         html {
             scroll-behavior: smooth;
         }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1rem;
+        }
+
+        .error {
+            color: #ff6b6b;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: block;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(to right, #00d2ff, #928dab);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -183,9 +235,7 @@
         <div class="glass-card">
             <p style="text-align: center; max-width: 800px; margin: 0 auto; font-size: 1.1rem;">
                 I am a dedicated developer focused on building functional and visually compelling digital experiences. 
-                My expertise lies in developing responsive websites and interactive applications that solve real-world problems. 
-                By combining clean code with modern design principles, I ensure that every project—from simple tools to complex 
-                interfaces—delivers high performance and a professional user experience.
+                My expertise lies in developing responsive websites and interactive applications that solve real-world problems.
             </p>
         </div>
     </section>
@@ -194,6 +244,12 @@
         <h2 class="section-title">My Projects</h2>
         <div class="projects-grid">
             
+            <div class="project-item" onclick="openProject('Digital Clock.html')">
+                <i class="fas fa-clock"></i>
+                <h3>Digital Clock</h3>
+                <p>An elegant timepiece showcasing real-time data handling.</p>
+            </div>
+
             <div class="project-item" onclick="openProject('Calculator.html')">
                 <i class="fas fa-calculator"></i>
                 <h3>Calculator</h3>
@@ -221,6 +277,30 @@
         </div>
     </section>
 
+    <section id="form-validation">
+        <h2 class="section-title">Contact Me</h2>
+        <div class="glass-card">
+            <form id="contactForm">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+                    <span class="error" id="nameError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <span class="error" id="emailError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <input type="text" id="message" name="message" placeholder="Enter your message" required>
+                    <span class="error" id="messageError"></span>
+                </div>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </section>
+
     <div id="projectModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeProject()">&times;</span>
@@ -239,22 +319,73 @@
         function openProject(fileName) {
             iframe.src = fileName;
             modal.style.display = "block";
-            document.body.style.overflow = "hidden"; // Stops page from scrolling in background
+            document.body.style.overflow = "hidden";
         }
 
         function closeProject() {
             modal.style.display = "none";
-            iframe.src = ""; // Resets the app
-            document.body.style.overflow = "auto"; // Re-enables scrolling
+            iframe.src = "";
+            document.body.style.overflow = "auto";
         }
 
-        // Close if clicking outside the white box
         window.onclick = function(event) {
             if (event.target == modal) {
                 closeProject();
             }
         }
-    </script>
 
+        // --- LIVE CLOCK FOR THE PROJECT CARD ---
+        function updateCardClock() {
+            const now = new Date();
+            let h = now.getHours();
+            let m = now.getMinutes();
+            let s = now.getSeconds();
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            
+            h = h % 12;
+            h = h ? h : 12; 
+            h = h < 10 ? '0' + h : h;
+            m = m < 10 ? '0' + m : m;
+            s = s < 10 ? '0' + s : s;
+
+            const clockDisplay = h + ":" + m + ":" + s + " " + ampm;
+            const element = document.getElementById('liveCardClock');
+            if(element) element.innerText = clockDisplay;
+        }
+        setInterval(updateCardClock, 1000);
+        updateCardClock();
+
+        // --- FORM VALIDATION ---
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('nameError').textContent = '';
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('messageError').textContent = '';
+
+            let isValid = true;
+            const name = document.getElementById('name').value.trim();
+            if (!/^[a-zA-Z\s]{2,}$/.test(name)) {
+                document.getElementById('nameError').textContent = 'Invalid Name.';
+                isValid = false;
+            }
+
+            const email = document.getElementById('email').value.trim();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                document.getElementById('emailError').textContent = 'Invalid Email.';
+                isValid = false;
+            }
+
+            const message = document.getElementById('message').value.trim();
+            if (message.length < 10) {
+                document.getElementById('messageError').textContent = 'Message too short.';
+                isValid = false;
+            }
+
+            if (isValid) {
+                alert('Thank you! Your message has been sent successfully.');
+                document.getElementById('contactForm').reset();
+            }
+        });
+    </script>
 </body>
 </html>
