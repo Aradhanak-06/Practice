@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            padding-bottom: 50px; 
+        }
+
+        .card { 
+            margin-bottom: 20px; 
+            border: none; 
+        }
+
+        .table-container { 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+
+        #budgetDisplay { 
+            display: none; 
+        }
+
+        .header-actions { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .budget-card { 
+            border-left: 4px solid #ffc107; 
+            background: #fff; 
+            position: relative; 
+        }
+
+        .del-budget { 
+            position: absolute; 
+            top: 5px; 
+            right: 10px; 
+            cursor: pointer; 
+            color: #dc3545; 
+            font-weight: bold; 
+            font-size: 1.2rem; 
+            line-height: 1;
+        }
+        .del-budget:hover { 
+            color: #a71d2a; 
+        }
+        
+        /* Custom style for the new button alignment */
+        .budget-controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Expense Tracker</h1>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">Record Expense</div>
+            <div class="card-body">
+                <form id="expenseForm">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" step="0.01" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="description" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="description" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="category" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="category" placeholder="e.g. Food">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Add Expense</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white header-actions">
+                <span>Expense History</span>
+                <button id="clearAllExpenses" class="btn btn-danger btn-sm">Delete All Expenses</button>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark header-actions">
+                <span>Budgeting</span>
+                <button id="clearAllBudgets" class="btn btn-danger btn-sm">Delete All Budgets</button>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Category</label>
+                        <select class="form-control" id="budgetCategory">
+                            <option>Food</option>
+                            <option>Transport</option>
+                            <option>Entertainment</option>
+                            <option>Utilities</option>
+                            <option>Healthcare</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Monthly Budget Amount</label>
+                        <input type="number" class="form-control" id="budgetAmount" placeholder="Enter amount" step="0.01">
+                    </div>
+                    <div class="col-md-2 d-flex flex-column justify-content-end">
+                        <div class="budget-controls d-grid gap-2">
+                    <button id="setBudgetBtn" class="btn btn-dark">Set</button>
+                    <button id="setForAllBtn" class="btn btn-dark">Set for All</button>
+                </div>
+                    </div>
+                </div>
+                
+                <div id="budgetDisplay" class="mt-4">
+                    <h6 class="fw-bold text-muted mb-3">Your Set Budgets:</h6>
+                    <div class="row" id="budgetGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EXPENSES_KEY = 'expenses';
+        const BUDGETS_KEY = 'manual_budgets';
+        
+        function loadExpenses() { return JSON.parse(localStorage.getItem(EXPENSES_KEY) || '[]'); }
+        function saveExpenses(ex) { localStorage.setItem(EXPENSES_KEY, JSON.stringify(ex)); renderExpenses(); }
+        function loadBudgets() { return JSON.parse(localStorage.getItem(BUDGETS_KEY) || '{}'); }
+        function saveBudgets(bg) { localStorage.setItem(BUDGETS_KEY, JSON.stringify(bg)); renderBudgets(); }
+
+        window.deleteExpense = function(index) {
+            const ex = loadExpenses();
+            ex.splice(index, 1);
+            saveExpenses(ex);
+        }
+
+        window.deleteBudget = function(category) {
+            const bg = loadBudgets();
+            delete bg[category];
+            saveBudgets(bg);
+        }
+
+        document.getElementById('clearAllExpenses').onclick = () => { if(confirm("Delete all expenses?")) saveExpenses([]); };
+        document.getElementById('clearAllBudgets').onclick = () => { if(confirm("Delete all budgets?")) saveBudgets({}); };
+
+        function renderExpenses() {
+            const ex = loadExpenses();
+            const body = document.getElementById('expenseTableBody');
+            body.innerHTML = '';
+            ex.slice().reverse().forEach((item, revIdx) => {
+                const idx = ex.length - 1 - revIdx;
+                body.innerHTML += `
+                    <tr>
+                        <td>${item.date}</td>
+                        <td>${item.description}</td>
+                        <td><span class="badge bg-secondary">${item.category}</span></td>
+                        <td>$${parseFloat(item.amount).toFixed(2)}</td>
+                        <td><button class="btn btn-outline-danger btn-sm" onclick="deleteExpense(${idx})">Del</button></td>
+                    </tr>`;
+            });
+        }
+
+        function renderBudgets() {
+            const bg = loadBudgets();
+            const display = document.getElementById('budgetDisplay');
+            const grid = document.getElementById('budgetGrid');
+            const keys = Object.keys(bg);
+            if (keys.length === 0) { display.style.display = 'none'; return; }
+            display.style.display = 'block';
+            grid.innerHTML = '';
+            keys.forEach(cat => {
+                grid.innerHTML += `
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="p-3 border rounded shadow-sm budget-card">
+                            <span class="del-budget" onclick="deleteBudget('${cat}')">&times;</span>
+                            <div class="text-uppercase small text-muted fw-bold">${cat}</div>
+                            <div class="h5 mb-0">$${parseFloat(bg[cat]).toFixed(2)}</div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function handleSetBudget() {
+            const cat = document.getElementById('budgetCategory').value;
+            const amt = parseFloat(document.getElementById('budgetAmount').value);
+            if (!isNaN(amt) && amt > 0) {
+                const bg = loadBudgets();
+                bg[cat] = amt;
+                saveBudgets(bg);
+                document.getElementById('budgetAmount').value = '';
+            }
+        }
+
+        // Logic for "Set for All"
+        function handleSetForAll() {
+            const amt = parseFloat(document.getElementById('budgetAmount').value);
+            if (!isNaN(amt) && amt > 0) {
+                const bg = loadBudgets();
+                const selectElement = document.getElementById('budgetCategory');
+                // Loop through every option in the dropdown and set the amount
+                Array.from(selectElement.options).forEach(option => {
+                    bg[option.value] = amt;
+                });
+                saveBudgets(bg);
+                document.getElementById('budgetAmount').value = '';
+            } else {
+                alert("Please enter a valid amount first.");
+            }
+        }
+
+        document.getElementById('setBudgetBtn').onclick = handleSetBudget;
+        document.getElementById('setForAllBtn').onclick = handleSetForAll;
+
+        document.getElementById('budgetAmount').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSetBudget();
+        });
+
+        document.getElementById('expenseForm').onsubmit = (e) => {
+            e.preventDefault();
+            const dateInput = document.getElementById('date').value;
+            const date = dateInput || new Date().toISOString().split('T')[0];
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value;
+            const category = document.getElementById('category').value || 'Other';
+            const ex = loadExpenses();
+            ex.push({ date, amount, description, category });
+            saveExpenses(ex);
+            e.target.reset();
+        };
+
+        renderExpenses();
+        renderBudgets();
+    </script>
+</body>
+</html>

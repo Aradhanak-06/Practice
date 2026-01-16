@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* UI Styles - Fixed Light Theme */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+        }
+        .search-bar {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        #city-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        #city-input:focus {
+            border-color: #4285f4;
+        }
+        #city-input.invalid {
+            border-color: #ea4335;
+            animation: shake 0.3s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        #search-btn, #location-btn, #refresh-btn {
+            padding: 12px 16px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+        #search-btn:hover { background: #357abd; transform: scale(1.05); }
+
+        .current-weather {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+        .current-weather h2 { margin: 0; font-size: 1.5em; font-weight: 400; color: #4285f4; }
+        .current-weather .temp { font-size: 3.5em; font-weight: 300; margin: 10px 0; }
+        .condition { display: flex; align-items: center; justify-content: center; font-size: 1.1em; text-transform: capitalize; }
+        .condition img { width: 60px; height: 60px; }
+        
+        .details { display: flex; justify-content: space-around; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+        .detail { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 0.9em; color: #666; }
+        .detail i { color: #4285f4; font-size: 1.2em; }
+
+        .forecast h3 { margin: 20px 0 10px 0; font-size: 1.2em; font-weight: 500; border-left: 4px solid #4285f4; padding-left: 10px; }
+        .hourly, .daily { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 15px; scrollbar-width: thin; }
+        
+        .hourly-item, .daily-item {
+            min-width: 85px;
+            text-align: center;
+            padding: 12px 8px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+        
+        .error {
+            color: #ea4335;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(234, 67, 53, 0.1);
+            border-radius: 8px;
+        }
+        .footer-link {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: none;
+        }
+        .footer-link a {
+            color: #4285f4;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="city-input" placeholder="Search for any city...">
+            <button id="search-btn" title="Search"><i class="fas fa-search"></i></button>
+            <button id="location-btn" title="Use Current Location"><i class="fas fa-map-marker-alt"></i></button>
+            <button id="refresh-btn" style="display: none;" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        
+        <div id="weather-content">
+            <div style="text-align:center; padding:40px; color:#999;">
+                <i class="fas fa-cloud-sun" style="font-size: 3em; margin-bottom: 10px;"></i>
+                <p>Enter a city name to see the weather forecast.</p>
+            </div>
+        </div>
+        
+        <div class="footer-link" id="footer-link-container">
+            <a href="https://www.google.com/search?q=weather" target="_blank" id="google-weather-link">
+                View on Google Weather <i class="fas fa-external-link-alt"></i>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Use your OpenWeatherMap API key here
+        const apiKey = 'YOUR_API_KEY_HERE';
+        const cityInput = document.getElementById('city-input');
+        const searchBtn = document.getElementById('search-btn');
+        const locationBtn = document.getElementById('location-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const weatherContent = document.getElementById('weather-content');
+        const footerContainer = document.getElementById('footer-link-container');
+        const googleLink = document.getElementById('google-weather-link');
+
+        // Mock database for demonstration if no API key is provided
+        const cityDatabase = {
+            'vijayawada': 'IN', 'hyderabad': 'IN', 'mumbai': 'IN', 'delhi': 'IN', 'chennai': 'IN',
+            'new york': 'US', 'london': 'GB', 'paris': 'FR', 'tokyo': 'JP', 'dubai': 'AE'
+        };
+
+        function isValidInput(input) {
+            return /^[a-zA-Z\s\-']+$/.test(input) && input.length > 1;
+        }
+
+        function showFooterLink(cityName, isError = false) {
+            const query = cityName ? `weather+in+${encodeURIComponent(cityName)}` : 'weather';
+            googleLink.href = `https://www.google.com/search?q=${query}`;
+            googleLink.innerHTML = isError 
+                ? `Search "${cityName}" on Google Weather <i class="fas fa-external-link-alt"></i>`
+                : `View ${cityName} on Google Weather <i class="fas fa-external-link-alt"></i>`;
+            footerContainer.style.display = 'block';
+        }
+
+        async function fetchWeather(city) {
+            if (!city.trim()) return;
+            
+            cityInput.classList.remove('invalid');
+            weatherContent.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            footerContainer.style.display = 'none';
+
+            const trimmedCity = city.trim();
+
+            if (!isValidInput(trimmedCity)) {
+                cityInput.classList.add('invalid');
+                weatherContent.innerHTML = `<div class="error">Invalid input. Please use letters only.</div>`;
+                showFooterLink(trimmedCity, true);
+                return;
+            }
+
+            try {
+                if (apiKey === 'YOUR_API_KEY_HERE') {
+                    // Logic for Mock Data
+                    await new Promise(r => setTimeout(r, 600));
+                    const lowerCity = trimmedCity.toLowerCase();
+                    if (!cityDatabase[lowerCity]) throw new Error(`City "${trimmedCity}" not found. Please add a valid API key for global search.`);
+                    
+                    const mockCurrent = {
+                        name: trimmedCity.charAt(0).toUpperCase() + trimmedCity.slice(1),
+                        sys: { country: cityDatabase[lowerCity] },
+                        main: { temp: 28, feels_like: 30, humidity: 65 },
+                        weather: [{ description: 'partly cloudy', icon: '02d' }],
+                        wind: { speed: 4.5 }
+                    };
+                    const mockForecast = {
+                        list: Array.from({ length: 40 }, (_, i) => ({
+                            dt: Date.now() / 1000 + i * 3600,
+                            main: { temp: 25 + Math.sin(i) * 5, temp_max: 30, temp_min: 22 },
+                            weather: [{ description: 'sunny', icon: '01d' }]
+                        }))
+                    };
+                    displayWeather(mockCurrent, mockForecast);
+                } else {
+                    // Actual API Call
+                    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${trimmedCity}&appid=${apiKey}&units=metric`);
+                    if (!res.ok) throw new Error('City not found.');
+                    const data = await res.json();
+                    const fRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${trimmedCity}&appid=${apiKey}&units=metric`);
+                    const fData = await fRes.json();
+                    displayWeather(data, fData);
+                }
+            } catch (err) {
+                weatherContent.innerHTML = `<div class="error">${err.message}</div>`;
+                showFooterLink(trimmedCity, true);
+            }
+        }
+
+        function displayWeather(current, forecast) {
+            const hourly = forecast.list.slice(0, 12);
+            const daily = forecast.list.filter((_, index) => index % 8 === 0).slice(0, 5);
+
+            weatherContent.innerHTML = `
+                <div class="current-weather">
+                    <h2>${current.name}, ${current.sys.country}</h2>
+                    <div class="condition">
+                        <img src="https://openweathermap.org/img/wn/${current.weather[0].icon}@2x.png" alt="icon">
+                        ${current.weather[0].description}
+                    </div>
+                    <div class="temp">${Math.round(current.main.temp)}°C</div>
+                    <div class="details">
+                        <div class="detail"><i class="fas fa-thermometer-half"></i><span>Feels ${Math.round(current.main.feels_like)}°</span></div>
+                        <div class="detail"><i class="fas fa-tint"></i><span>${current.main.humidity}% Humidity</span></div>
+                        <div class="detail"><i class="fas fa-wind"></i><span>${current.wind.speed} m/s</span></div>
+                    </div>
+                </div>
+                <div class="forecast">
+                    <h3>Hourly Forecast</h3>
+                    <div class="hourly">
+                        ${hourly.map(item => `
+                            <div class="hourly-item">
+                                <div>${new Date(item.dt * 1000).getHours()}:00</div>
+                                <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" alt="icon">
+                                <div><strong>${Math.round(item.main.temp)}°</strong></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <h3>5-Day Forecast</h3>
+                    <div class="daily">
+                        ${daily.map(item => `
+                            <div class="daily-item">
+                                <div>${new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                <img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" alt="icon">
+                                <div><strong>${Math.round(item.main.temp_max)}°</strong></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            showFooterLink(current.name, false);
+            refreshBtn.style.display = 'inline-block';
+        }
+
+        searchBtn.addEventListener('click', () => fetchWeather(cityInput.value));
+        cityInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') fetchWeather(cityInput.value);
+        });
+        refreshBtn.addEventListener('click', () => fetchWeather(cityInput.value));
+    </script>
+</body>
+</html>

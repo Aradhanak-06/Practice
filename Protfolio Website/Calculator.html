@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            padding: 25px;
+        }
+        .display {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 25px;
+            text-align: right;
+            font-size: 28px;
+            font-weight: 500;
+            min-height: 60px;
+            overflow-x: auto;
+            word-wrap: break-word;
+            border: 2px solid #ddd;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .btn {
+            padding: 18px;
+            font-size: 20px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.1s ease, box-shadow 0.2s ease;
+            background: #ecf0f1;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+        .btn:hover {
+            background: #bdc3c7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .btn.operator { background: #3498db; color: white; }
+        .btn.operator:hover { background: #2980b9; }
+        .btn.equals { background: #e74c3c; color: white; grid-column: span 2; }
+        .btn.equals:hover { background: #c0392b; }
+        .btn.clear { background: #f39c12; color: white; }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        .history-header span { font-weight: bold; color: #555; }
+        .clear-history-link {
+            font-size: 12px;
+            color: #e74c3c;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .history {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .history-text { cursor: pointer; flex-grow: 1; }
+        .history-text:hover { color: #3498db; }
+        .del-item {
+            color: #ccc;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: color 0.2s;
+        }
+        .del-item:hover { color: #e74c3c; }
+
+        @media (max-width: 600px) {
+            .container { margin: 15px; padding: 20px; }
+            .btn { padding: 15px; font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="display" id="display"></div>
+        <div class="buttons">
+            <button class="btn clear" id="clear">C</button>
+            <button class="btn" id="backspace">Del<i class="fas fa-backspace"></i></button>
+            <button class="btn operator" id="modulo">%</button>
+            <button class="btn operator" id="divide">/</button>
+            <button class="btn" id="7">7</button>
+            <button class="btn" id="8">8</button>
+            <button class="btn" id="9">9</button>
+            <button class="btn operator" id="multiply">*</button>
+            <button class="btn" id="4">4</button>
+            <button class="btn" id="5">5</button>
+            <button class="btn" id="6">6</button>
+            <button class="btn operator" id="subtract">-</button>
+            <button class="btn" id="1">1</button>
+            <button class="btn" id="2">2</button>
+            <button class="btn" id="3">3</button>
+            <button class="btn operator" id="add">+</button>
+            <button class="btn" id="0">0</button>
+            <button class="btn" id="decimal">.</button>
+            <button class="btn equals" id="equals">=</button>
+        </div>
+
+        <div class="history-header">
+            <span>History</span>
+            <span class="clear-history-link" id="clearHistory">Clear All</span>
+        </div>
+        <div class="history" id="history"></div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        const history = document.getElementById('history');
+        const clearHistoryBtn = document.getElementById('clearHistory');
+        
+        let currentInput = ''; 
+        let historyList = []; 
+        
+        function updateDisplay() {
+            display.textContent = currentInput;
+        }
+        
+        function deleteHistoryItem(index) {
+            historyList.splice(index, 1);
+            updateHistory();
+        }
+
+        function updateHistory() {
+            history.innerHTML = '';
+            historyList.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <span class="history-text">${item}</span>
+                    <i class="fas fa-times del-item" onclick="deleteHistoryItem(${index})"></i>
+                `;
+                
+                // Clicking the text restores the result to the display
+                div.querySelector('.history-text').addEventListener('click', () => {
+                    currentInput = item.split('=')[1].trim();
+                    updateDisplay();
+                });
+                
+                history.appendChild(div);
+            });
+        }
+        
+        clearHistoryBtn.addEventListener('click', () => {
+            historyList = [];
+            updateHistory();
+        });
+
+        function calculate(expression) {
+            try {
+                if (!expression || !/^[0-9+\-*/%. ]+$/.test(expression) || /\/0/.test(expression)) {
+                    return ''; 
+                }
+                const result = eval(expression);
+                if (!isFinite(result) || isNaN(result)) {
+                    return ''; 
+                }
+                return parseFloat(result.toFixed(10)).toString();
+            } catch {
+                return ''; 
+            }
+        }
+        
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const value = btn.id;
+                
+                if (value === 'clear') {
+                    currentInput = '';
+                } else if (value === 'backspace') {
+                    currentInput = currentInput.slice(0, -1);
+                } else if (value === 'equals') {
+                    if (currentInput) {
+                        const result = calculate(currentInput);
+                        if (result) {
+                            historyList.unshift(`${currentInput} = ${result}`);
+                            if (historyList.length > 20) historyList.pop();
+                        }
+                        currentInput = result;
+                    }
+                } else if (['add', 'subtract', 'multiply', 'divide', 'modulo'].includes(value)) {
+                    const lastChar = currentInput.slice(-1);
+                    if (!['+', '-', '*', '/', '%'].includes(lastChar) && currentInput) {
+                        currentInput += value === 'add' ? '+' : value === 'subtract' ? '-' : value === 'multiply' ? '*' : value === 'divide' ? '/' : '%';
+                    }
+                } else {
+                    if (value === 'decimal' && !currentInput.includes('.')) {
+                        currentInput += '.';
+                    } else if (value !== 'decimal') {
+                        currentInput += value;
+                    }
+                }
+                updateDisplay();
+                updateHistory();
+            });
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if (key >= '0' && key <= '9') {
+                document.getElementById(key).click();
+            } else if (key === '+') document.getElementById('add').click();
+            else if (key === '-') document.getElementById('subtract').click();
+            else if (key === '*') document.getElementById('multiply').click();
+            else if (key === '/') document.getElementById('divide').click();
+            else if (key === '%') document.getElementById('modulo').click();
+            else if (key === 'Enter') { e.preventDefault(); document.getElementById('equals').click(); }
+            else if (key === 'Backspace') document.getElementById('backspace').click();
+            else if (key === 'c' || key === 'C') document.getElementById('clear').click();
+        });
+        
+        updateDisplay();
+        updateHistory();
+    </script>
+</body>
+</html>
